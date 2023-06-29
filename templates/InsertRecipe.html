@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>InsertRecipe</title>
+</head>
+<body>
+{% extends 'HomePage.html' %}
+{% load static %}
+{% block content %}
+    <div class="row">
+		<div class="col-lg-6">
+			<div class="box-element" id="form-wrapper">
+				<form id="form" action="" method="post" enctype="multipart/form-data">
+					<div id="user-info">
+                      <h4 style="text-align: center">SHIPPING INFORMATION</h4>
+                        <hr>
+                        {% csrf_token %}
+                         {{form.as_p}}
+					</div>
+                      <button type="submit" class="btn btn-outline-success btn-lg">Pay</button>
+				</form>
+			</div>
+
+{% endblock content %}
+</body>
+</html>
