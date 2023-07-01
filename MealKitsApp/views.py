@@ -1,11 +1,14 @@
 import datetime
 
 from django.shortcuts import render, redirect
-from .models import ShippingAddress, Menu, Cart, CartItem, RecipeMenu, Recipe
+from django.template.defaulttags import register
+
+from .models import *
 from django.http import JsonResponse
 import json
 # from .forms import PaymentForm, ShippingAddressForm, RecipeForm
 from django.views.decorators.csrf import csrf_exempt
+
 
 # Create your views here.
 
@@ -40,28 +43,15 @@ def checkout(request):
         items = []
         order = {'get_cart_total': 0, 'get_cart_items': 0}
 
-    # if request.method == "POST":
-    #     form_data = ShippingAddressForm(data=request.POST)
-    #     if form_data.is_valid():
-    #         shipping = form_data.save(commit=False)
-    #         shipping = request.user
-    #         #shipping.order = order
-    #         shipping.save()
-    #     form_data_payment = PaymentForm(data=request.POST)
-    #     if form_data_payment.is_valid():
-    #         payment = form_data_payment.save(commit=False)
-    #         payment.customer.user = request.user
-    #         payment.save()
-    #         return redirect("cart/checkout")
-
     context = {'items': items, 'order': order}
     return render(request, "cart/checkout.html", context)
 
 
 def menu(request):
     menuId = request.session['menuId']
+    menu = Menu.objects.get(id=menuId)
     qs = RecipeMenu.objects.filter(menu_id=menuId).all()
-    context = {"recipes": qs, }
+    context = {"recipes": qs, "menu": menu}
     return render(request, "Menu.html", context)
 
 
@@ -75,8 +65,10 @@ def go_to_detailed_view_menu(request):
 def detailedView(request):
     productId = request.session['productId']
     product = Recipe.objects.get(id=productId)
-    # sizes = ProductSizes.objects.filter(product = product).all()
-    context = {'product': product}
+    ingr = RecipeIngredient.objects.filter(recipe=product).all()
+    nots = RecipeNotIncluded.objects.filter(recipe=product).all()
+    nc = RecipeNutrientsChart.objects.get(recipe=product)
+    context = {'product': product, 'ingredients': ingr, 'nots': nots, 'chart': nc}
     return render(request, 'detailedView.html', context)
 
 
@@ -146,15 +138,89 @@ def processOrder(request):
     return JsonResponse('Payment submitted..', safe=False)
 
 
-# def insertRecipe(request):
-#     if request.user ==
-#     if request.method == "POST":
-#         form_data = RecipeForm(data=request.POST, files=request.FILES)
-#         if form_data.is_valid():
-#             recipe = form_data.save(commit=False)
-#             recipe.pic = form_data.cleaned_data['pic']
-#             recipe.save()
-#             return redirect("InsertRecipe")
-#     context = {"form": RecipeForm}
-#     return render(request, "InsertRecipe.html", context)
+def insertRecipe(request):
+    if not request.user.is_superuser:
+        return render(request, 'AccessDenied.html')
 
+    @register.filter(name='split')
+    def split(value):
+        return value.split(',')
+
+    if request.method == 'POST':
+        data = request.POST
+        pic = request.FILES.get('picture')
+        menuN = data['hid-menu']
+
+        ingredients = data['hid-ingredient']
+        nots = data['hid-not']
+
+        ingredients_list = split(ingredients)
+        print(ingredients_list)
+
+        nots_list = split(nots)
+        print(nots_list)
+
+        for i in ingredients_list:
+            print(i)
+
+        for i in nots_list:
+            print(i)
+
+        recipe = Recipe.objects.create(
+            name=data['heading'],
+            subheading=data['subheading'],
+            description=data['desc'],
+            difficulty=data['difficulty'],
+            allergens=data['allergens'],
+            total_time=data['total_time'],
+            tags=data['tags'],
+            price=data['price'],
+            pic=pic
+        )
+
+        menu = Menu.objects.get(name=menuN)
+        RecipeMenu.objects.create(
+            menu=menu,
+            recipe=recipe
+        )
+
+        for i in ingredients_list:
+            ing = Ingredient.objects.get(name=i)
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredients=ing
+            )
+
+        for i in nots_list:
+            ni = NotIncluded.objects.get(name=i)
+            RecipeNotIncluded.objects.create(
+                recipe=recipe,
+                other=ni
+            )
+
+        nutri_table = NutrientsChart.objects.create(
+            energy=data['energy'],
+            calories=data['calories'],
+            fat=data['fat'],
+            saturated_fat=data['saturated_fat'],
+            carbs=data['carbs'],
+            sugar=data['sugar'],
+            protein=data['protein'],
+            cholesterol=data['cholesterol'],
+            sodium=data['sodium'],
+        )
+
+        RecipeNutrientsChart.objects.create(
+            recipe=recipe,
+            nutrients_chart=nutri_table
+        )
+
+    notIncluded = NotIncluded.objects.all()
+    ingredients = Ingredient.objects.all()
+    menus = Menu.objects.all()
+
+    context = {"notIncl": notIncluded, "ingredients": ingredients, "menus": menus}
+    return render(request, "InsertRecipe.html", context=context)
+
+def success(request):
+    return render(request, "cart/PaymentSuccess.html")

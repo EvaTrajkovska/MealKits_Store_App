@@ -66,16 +66,12 @@ class Recipe(models.Model):
     name = models.CharField(max_length=255)
     subheading = models.CharField(max_length=255)
     description = models.TextField()
-    # nutrients_chart = models.ForeignKey(NutrientsChart, null=True, blank=True)
     difficulty = models.CharField(max_length=255, null=True, blank=True)
     allergens = models.CharField(max_length=255, null=True, blank=True)
     tags = models.CharField(max_length=255, null=True, blank=True)
     total_time = models.IntegerField(null=True, blank=True)
-    # menu = models.ForeignKey(Menu, null=True, blank=True)
     pic = models.ImageField(null=True, blank=True)
     price = models.FloatField(null=True, blank=True)
-
-    # qty = models.IntegerField(null=True, blank=True, default=2)
 
     def __str__(self):
         return str(self.name)

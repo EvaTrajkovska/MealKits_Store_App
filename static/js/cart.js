@@ -48,7 +48,6 @@ if (addToCart !== null){
 }
 
 
-
 let updateInCart = document.getElementsByClassName('update-cart');
 for (let i = 0; i < updateInCart.length; i++) {
 	updateInCart[i].addEventListener('click', function(){
